@@ -14,6 +14,7 @@
 
 <category label="Paths">
 	<setting label="mame program (mame.exe)" type="file" id="exe"/>
+	<setting label="generate mame game list" type="action" action="XBMC.RunPlugin(plugin://script.games.play.mame/listxml)"/>
 	<setting label="roms" type="folder" id="roms" source="auto" option=""/>
 	<setting label="snaps" type="folder" id="snaps" source="auto" option=""/>
 	<setting label="titles" type="folder" id="titles" source="auto" option=""/>

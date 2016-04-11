@@ -1,9 +1,11 @@
 from xbmcswift2 import Plugin
-import xbmc
+import xbmc,xbmcaddon,xbmcvfs
 import os, sys, subprocess
 from subprocess import Popen
 import json
 import re
+import xml.etree.ElementTree as etree
+
 
 plugin = Plugin()
 
@@ -12,6 +14,74 @@ plugin = Plugin()
 def log(v):
     xbmc.log(re.sub(',',',\n',repr(v)))
 
+@plugin.route('/listxml')
+def listxml():
+    addon = xbmcaddon.Addon()
+    profile = xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8')
+
+    xml_file = os.path.join(profile, 'mame.xml')
+    err_file = os.path.join(profile, "stderr.txt")
+    json_file = os.path.join(profile, "mame.json")
+
+    exe = plugin.get_setting('exe')
+    (path,mame) = os.path.split(exe)
+    #with open(xml_file,"wb") as out, open(err_file,"wb") as err:
+    #    subprocess.Popen([mame, '-listxml'],shell=True, stdout=out,stderr=err,cwd=path)
+  
+    with open(xml_file,"rb") as in_file:
+        list = []
+        for event, elem in etree.iterparse(in_file):
+            if event == 'end':
+                if elem.tag == 'game':
+                    game = elem
+                    a = game.attrib
+                    info = {}                   
+                    info['name'] = a['name']
+                    log(info['name'])
+                    info['cloneof'] = ''
+                    if 'cloneof' in a:
+                        info['cloneof'] = a['cloneof']
+                    info['isbios'] = ''
+                    if 'isbios' in a:
+                        info['isbios'] = a['isbios']                        
+                    info['isdevice'] = ''
+                    if 'isdevice' in a:
+                        info['isdevice'] = a['isdevice']
+                    info['ismechanical'] = ''
+                    if 'ismechanical' in a:
+                        info['ismechanical'] = a['ismechanical']                        
+                    info['year'] = ''
+                    y = game.find('year')
+                    if y is not None:
+                        info['year'] = y.text
+                    info['manufacturer'] = ''
+                    m = game.find('manufacturer')
+                    if m is not None:
+                        info['manufacturer'] = m.text                    
+                    info['description'] = ''
+                    d = game.find('description')
+                    if d is not None:
+                        info['description'] = d.text
+                    info['status'] = ''
+                    d = game.find('driver')
+                    if d is not None:
+                        d = d.attrib    
+                        if 'status' in d:
+                            info['status'] = d['status']                    
+                    info['players'] = ''
+                    i = game.find('input')
+                    if i is not None:
+                        i = i.attrib
+                        if 'players' in i:
+                            info['players'] = i['players']                                
+                    if info['isbios'] == '' and info['isdevice'] == '' and info['ismechanical'] == '' and info['status'] != 'preliminary' :
+                        list.append(info)
+                    elem.clear()
+                    
+        with open(json_file, 'wb') as outfile:
+            json.dump(list, outfile)
+        
+                
 @plugin.route('/default')
 def default():
     snaps = plugin.get_setting('snaps')
@@ -41,15 +111,19 @@ def default():
 #@plugin.route('/filter', name='filter_options', options={'clone': 'false'})
 @plugin.route('/filter/<clone>/<start>/<end>/<name>/<exclude>/<rom>/<manufacturer>/<players>')
 def filter(clone,start,end,name,exclude,rom,manufacturer,players):
-    #xbmc.log(clone)
+
+    addon = xbmcaddon.Addon()
+    profile = xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8')
+    json_file = os.path.join(profile, "mame.json")
+    xbmc.log(json_file)
     #xbmc.log(start)
     #xbmc.log(end)
     exe = plugin.get_setting('exe')
     (path,mame) = os.path.split(exe)
-    with open(os.path.join(path,'mame.json'), 'r') as infile:
+    with open(json_file, 'r') as infile:
         list = json.load(infile)
     
-    log(len(list))
+    #log(len(list))
 
     #sorted_games = sorted(games, key=lambda game: game[1])    
     
@@ -66,7 +140,7 @@ def filter(clone,start,end,name,exclude,rom,manufacturer,players):
         #year = int(re.sub('\?','0',l['year']))
         year = l['year']
         if '?' in year:
-            year = -1
+            year = 0
         else:
             year = int(year)
         #log(year)
@@ -102,16 +176,17 @@ def filter(clone,start,end,name,exclude,rom,manufacturer,players):
             l['label'] = label
             keepers.append(l)
             #games.append((label, l['name']))
-    log(len(keepers))
+    #log(len(keepers))
     out_keepers = []
     for l in keepers:
+        l['sortname'] = l['name']
         if l['cloneof'] == '':
             l['cloneof'] = l['name']
-            l['name'] = ''
+            l['sortname'] = ''
         out_keepers.append(l)
     #log(out_keepers)
-    log(len(out_keepers))
-    sorted_list = sorted(out_keepers, key = lambda x: (x['cloneof'], x['name']))
+    #log(len(out_keepers))
+    sorted_list = sorted(out_keepers, key = lambda x: (x['cloneof'], x['sortname']))
     #log(sorted_list)
     
     games = []
@@ -138,7 +213,8 @@ def filter(clone,start,end,name,exclude,rom,manufacturer,players):
         }
         } for r in games
     ]
-    plugin.set_content('movies')
+    #log(items)
+    #plugin.set_content('movies')
     #sorted_items = sorted(items, key=lambda item: item['label'])
     return items
 
@@ -164,7 +240,7 @@ def index():
     if rom == '':
         rom = '?'
     if start == '':
-        start = '-2'
+        start = '1'
     if end == '':
         end = '9999'
     clones = clones
@@ -183,47 +259,47 @@ def index():
     } ,  
     {
         'label': "All",
-        'path': plugin.url_for('filter' , clone='true', start='-2', end='9999', name='?', exclude='?', rom='?', manufacturer='?', players='?'),
+        'path': plugin.url_for('filter' , clone='true', start=0, end=9999, name='?', exclude='?', rom='?', manufacturer='?', players='?'),
 
     } ,    
     
     {
         'label': "No Clones",
-        'path': plugin.url_for('filter', clone='false', start='-2', end='9999', name='?', exclude='?', rom='?', manufacturer='?', players='?'),
+        'path': plugin.url_for('filter', clone='false', start=1, end=1979, name='?', exclude='?', rom='?', manufacturer='?', players='?'),
 
     } ,
     {
         'label': "Clones",
-        'path': plugin.url_for('filter', clone='true', start='-2', end='9999', name='?', exclude='?', rom='?', manufacturer='?', players='?'),
+        'path': plugin.url_for('filter', clone='true', start=1, end=1979, name='?', exclude='?', rom='?', manufacturer='?', players='?'),
 
     },
     {
         'label': "Invaders",
-        'path': plugin.url_for('filter', clone='false', start='-2', end='9999', name='invaders', exclude='?', rom='?', manufacturer='?', players='?'),
+        'path': plugin.url_for('filter', clone='false', start=1, end=1979, name='invaders', exclude='?', rom='?', manufacturer='?', players='?'),
 
     }, 
     {
         'label': "inv rom",
-        'path': plugin.url_for('filter', clone='true', start='-2', end='9999', name='?', exclude='?', rom='inv', manufacturer='?', players='?'),
+        'path': plugin.url_for('filter', clone='true', start=1, end=1979, name='?', exclude='?', rom='inv', manufacturer='?', players='?'),
 
     },     {
         'label': "Golden",
-        'path': plugin.url_for('filter', clone='false', start='1977', end='1982', name='?', exclude='?', rom='?', manufacturer='?', players='?'),
+        'path': plugin.url_for('filter', clone='false', start=1977, end=1982, name='?', exclude='?', rom='?', manufacturer='?', players='?'),
 
     },
         {
         'label': "1980",
-        'path': plugin.url_for('filter', clone='true', start='1980', end='1980', name='?', exclude='?', rom='?', manufacturer='?', players='?'),
+        'path': plugin.url_for('filter', clone='true', start=1980, end=1980, name='?', exclude='?', rom='?', manufacturer='?', players='?'),
 
     },
     {
         'label': "Pre 1980",
-        'path': plugin.url_for('filter', clone='true', start='0', end='1979', name='?', exclude='?', rom='?', manufacturer='?', players='?'),
+        'path': plugin.url_for('filter', clone='true', start=1, end=1979, name='?', exclude='?', rom='?', manufacturer='?', players='?'),
 
     },
     {
         'label': "Unknown Year",
-        'path': plugin.url_for('filter', clone='false', start='-2', end='0', name='?', exclude='?', rom='?',manufacturer='?', players='?'),
+        'path': plugin.url_for('filter', clone='false', start=0, end=0, name='?', exclude='?', rom='?',manufacturer='?', players='?'),
 
     },    ]
 
@@ -245,7 +321,7 @@ def play(rom):
     #from subprocess import Popen, PIPE, STDOUT
     #handle = Popen(['mame.exe', 'amidar' ], shell=True, stdout=PIPE, stderr=STDOUT, stdin=PIPE, cwd=r'C:\emulators\mame')
     (path,mame) = os.path.split(exe)
-    handle = Popen([exe, rom, '-rompath', roms], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,cwd=path)
+    handle = Popen([mame, rom, '-rompath', roms], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,cwd=path)
     xbmc.log(handle.stdout.readline().strip())
     
 if __name__ == '__main__':
