@@ -25,9 +25,10 @@ def listxml():
 
     exe = plugin.get_setting('exe')
     (path,mame) = os.path.split(exe)
-    #with open(xml_file,"wb") as out, open(err_file,"wb") as err:
-    #    subprocess.Popen([mame, '-listxml'],shell=True, stdout=out,stderr=err,cwd=path)
-  
+    with open(xml_file,"wb") as out, open(err_file,"wb") as err:
+        p = subprocess.Popen([mame, '-listxml'],shell=True, stdout=out,stderr=err,cwd=path)
+        p.communicate()
+    log("finished writing xml")
     with open(xml_file,"rb") as in_file:
         list = []
         for event, elem in etree.iterparse(in_file):
