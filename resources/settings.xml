@@ -1,7 +1,19 @@
 <settings>
 
-<category label="MAME Paths">
-	<setting label="Mame Program (mame.exe)" type="file" id="exe" value=""/>
+<category label="Filter">
+	<setting label="custom filter name" type="text" id="filter"/>
+	<setting label="include in name" type="text" id="name"/>
+	<setting label="exclude in name" type="text" id="exclude"/>
+	<setting label="rom" type="text" id="rom" />
+	<setting label="start year" type="number" id="start" />
+	<setting label="end year" type="number" id="end" />
+	<setting label="clones" type="bool" id="clones" default="false"/>
+	<setting label="manufacturer" type="text" id="manufacturer"/>
+	<setting label="players" type="number" id="players" />
+</category>
+
+<category label="Paths">
+	<setting label="mame program (mame.exe)" type="file" id="exe"/>
 	<setting label="roms" type="folder" id="roms" source="auto" option=""/>
 	<setting label="snaps" type="folder" id="snaps" source="auto" option=""/>
 	<setting label="titles" type="folder" id="titles" source="auto" option=""/>
