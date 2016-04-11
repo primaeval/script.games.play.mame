@@ -1,7 +1,9 @@
 from xbmcswift2 import Plugin
 import xbmc
-#import os, sys, subprocess
+import os, sys, subprocess
 from subprocess import Popen
+import json
+import re
 
 plugin = Plugin()
 
@@ -1355,48 +1357,191 @@ games = [["10-Yard Fight (World, set 1)", "10yard"],
 ["Zwackery", "zwackery"], 
 ["Zzyzzyxx (set 1)", "zzyzzyxx"]]
 
-@plugin.route('/')
-def index():
-    #roms = ["amidar","asteroid","astdelux"]
+def log(v):
+    xbmc.log(re.sub(',',',\n',repr(v)))
+
+@plugin.route('/default')
+def default():
+    snaps = plugin.get_setting('snaps')
+    titles = plugin.get_setting('titles')
+    cabinets = plugin.get_setting('cabinets')
+    marquees = plugin.get_setting('marquees')
+    flyers = plugin.get_setting('flyers')
     items = [
         {'label': r[0], 
-        'thumbnail': r'C:\MAME\mame0147b_i686\snap\%s.png' % r[1], 
-        'icon': r'C:\MAME\mame0147b_i686\titles\%s.png' % r[1], 
+        'thumbnail': '%s%s.png' % (snaps,r[1]), 
+        'icon': '%s%s.png' % (marquees,r[1]), 
         'path': plugin.url_for('play', rom=r[1]),
         'properties' : {
-        'fanart_image' : r'C:\MAME\mame0147b_i686\cabinets\%s.png' % r[1], 
-        'banner' : r'C:\MAME\mame0147b_i686\marquees\%s.png' % r[1], 
-        'clearlogo': r'C:\MAME\mame0147b_i686\titles\%s.png' % r[1], 
-        'poster': r'C:\MAME\mame0147b_i686\flyers\%s.png' % r[1]}
+        'fanart_image' : '%s%s.png' % (flyers,r[1]), 
+        'banner' : '%s%s.png' % (marquees,r[1]), 
+        'clearlogo': '%s%s.png' % (titles,r[1]), 
+        'poster': '%s%s.png' % (cabinets,r[1]), 
+        }
         } for r in games
     ]
     plugin.set_content('movies')
     sorted_items = sorted(items, key=lambda item: item['label'])
     return sorted_items
 
-@plugin.route('/index')
-def index1():
-    roms = ["amidar","asteroid","astdelux"]
+#@plugin.route('/filter', name='filter_options', options={'clone': 'false', 'year_start' : '0', 'year_end' : '9999', 'name' : '', 'players' : '', 'manufacturer': '', 'rom' : ''})
+#def filter(clone, year_start, year_end, name, players, manufacturer, rom):
+#@plugin.route('/filter', name='filter_options', options={'clone': 'false'})
+@plugin.route('/filter/<clone>/<start>/<end>/<name>/<rom>')
+def filter(clone,start,end,name,rom):
+    #xbmc.log(clone)
+    #xbmc.log(start)
+    #xbmc.log(end)
+    exe = plugin.get_setting('exe')
+    (path,mame) = os.path.split(exe)
+    with open(os.path.join(path,'mame.json'), 'r') as infile:
+        list = json.load(infile)
+    
+    log(len(list))
+
+    #sorted_games = sorted(games, key=lambda game: game[1])    
+    
+    keepers = []
+    for l in list:
+        keep = True
+        if l['cloneof']:
+            label = "[COLOR orange]%s[/COLOR] - [COLOR green]%s[/COLOR] - %s [B]%s[/B]" % (l['description'], l['year'], l['name'], l['cloneof'],  )
+        else:
+            label = "[COLOR yellow][B]%s[/B][/COLOR] - [COLOR green]%s[/COLOR] - %s [B]%s[/B]" % (l['description'], l['year'], l['name'], l['cloneof'],  )
+        if l['cloneof'] != "" and clone == 'false':
+            keep = False
+        
+        #year = int(re.sub('\?','0',l['year']))
+        year = l['year']
+        if '?' in year:
+            year = -1
+        else:
+            year = int(year)
+        #log(year)
+        if year < int(start) or year > int(end):
+            keep = False
+        
+        if name != '?':
+            #log(name)
+            if not re.search(name, l['description'],re.I):
+                keep = False
+                
+        if rom != '?':
+            #log(name)
+            if not re.search(rom, l['name'],re.I):
+                keep = False
+        '''
+        if players:
+            if int(l['players']) != players:
+                keep = False
+        if manufacturer:
+            if not re.search(manufacturer, l['manufacturer']):
+                keep = False
+        if rom:
+            if not re.search(rom, l['rom']):
+                keep = False
+        '''
+        if keep:
+            l['label'] = label
+            keepers.append(l)
+            #games.append((label, l['name']))
+    log(len(keepers))
+    out_keepers = []
+    for l in keepers:
+        if l['cloneof'] == '':
+            l['cloneof'] = l['name']
+            l['name'] = ''
+        out_keepers.append(l)
+    #log(out_keepers)
+    log(len(out_keepers))
+    sorted_list = sorted(out_keepers, key = lambda x: (x['cloneof'], x['name']))
+    #log(sorted_list)
+    
+    games = []
+    for l in sorted_list:
+        games.append((l['label'], l['name']))
+    
+    #sorted_games = sorted(games, key=lambda game: game[1])                
+
+    snaps = plugin.get_setting('snaps')
+    titles = plugin.get_setting('titles')
+    cabinets = plugin.get_setting('cabinets')
+    marquees = plugin.get_setting('marquees')
+    flyers = plugin.get_setting('flyers')
     items = [
-        {'label': r, 
-        'thumbnail': r'I:\MAME\Extras\snap\%s.png' % r, 
-        'icon': r'I:\MAME\Extras\titles\%s.png' % r, 
-        'path': plugin.url_for('play', rom=r),
+        {'label': r[0], 
+        'thumbnail': '%s%s.png' % (snaps,r[1]), 
+        'icon': '%s%s.png' % (marquees,r[1]), 
+        'path': plugin.url_for('play', rom=r[1]),
         'properties' : {
-        'fanart_image' : r'I:\MAME\Extras\cabinets\%s.png' % r, 
-        'banner' : r'I:\MAME\Extras\marquees\%s.png' % r, 
-        'clearlogo': r'I:\MAME\Extras\titles\%s.png' % r, 
-        'poster': r'I:\MAME\Extras\flyers\%s.png' % r}
-        } for r in roms
+        'fanart_image' : '%s%s.png' % (flyers,r[1]), 
+        'banner' : '%s%s.png' % (marquees,r[1]), 
+        'clearlogo': '%s%s.png' % (titles,r[1]), 
+        'poster': '%s%s.png' % (cabinets,r[1]), 
+        }
+        } for r in games
     ]
     plugin.set_content('movies')
+    #sorted_items = sorted(items, key=lambda item: item['label'])
+    return items
+
+@plugin.route('/')
+def index():
+
+    items = [
+    {
+        'label': "All",
+        'path': plugin.url_for('filter' , clone='true', start='-2', end='9999', name='?', rom='?'),
+
+    } ,    
+    
+    {
+        'label': "No Clones",
+        'path': plugin.url_for('filter', clone='false', start='-2', end='9999', name='?', rom='?'),
+
+    } ,
+    {
+        'label': "Clones",
+        'path': plugin.url_for('filter', clone='true', start='-2', end='9999', name='?', rom='?'),
+
+    },
+    {
+        'label': "Invaders",
+        'path': plugin.url_for('filter', clone='false', start='-2', end='9999', name='invaders', rom='?'),
+
+    }, 
+    {
+        'label': "inv rom",
+        'path': plugin.url_for('filter', clone='true', start='-2', end='9999', name='?', rom='inv'),
+
+    },     {
+        'label': "Golden",
+        'path': plugin.url_for('filter', clone='false', start='1977', end='1982', name='?', rom='?'),
+
+    },
+        {
+        'label': "1980",
+        'path': plugin.url_for('filter', clone='true', start='1980', end='1980', name='?', rom='?'),
+
+    },
+    {
+        'label': "Pre 1980",
+        'path': plugin.url_for('filter', clone='true', start='0', end='1979', name='?', rom='?'),
+
+    },
+    {
+        'label': "Unknown Year",
+        'path': plugin.url_for('filter', clone='false', start='-2', end='0', name='?', rom='?'),
+
+    },    ]
+
     sorted_items = sorted(items, key=lambda item: item['label'])
     return sorted_items
-    
-
 
 @plugin.route('/play/<rom>/')
 def play(rom):
+    exe = plugin.get_setting('exe')
+    roms = plugin.get_setting('roms')
     # Normally we would use label to parse a specific web page, in this case we are just
     # using it for a new list item label to show how URL parsing works.
     items = [
@@ -1407,8 +1552,9 @@ def play(rom):
     #return items
     #from subprocess import Popen, PIPE, STDOUT
     #handle = Popen(['mame.exe', 'amidar' ], shell=True, stdout=PIPE, stderr=STDOUT, stdin=PIPE, cwd=r'C:\emulators\mame')
-    handle = Popen(['mame.exe', rom ], shell=True, cwd=r'C:\MAME\mame0147b_i686')
-    #xbmc.log(handle.stdout.readline().strip())
+    (path,mame) = os.path.split(exe)
+    handle = Popen([exe, rom, '-rompath', roms], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,cwd=path)
+    xbmc.log(handle.stdout.readline().strip())
     
 if __name__ == '__main__':
     plugin.run()

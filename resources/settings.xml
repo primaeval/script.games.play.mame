@@ -1,0 +1,14 @@
+<settings>
+
+<category label="MAME Paths">
+	<setting label="Mame Program (mame.exe)" type="file" id="exe" value=""/>
+	<setting label="roms" type="folder" id="roms" source="auto" option=""/>
+	<setting label="snaps" type="folder" id="snaps" source="auto" option=""/>
+	<setting label="titles" type="folder" id="titles" source="auto" option=""/>
+	<setting label="cabinets" type="folder" id="cabinets" source="auto" option=""/>
+	<setting label="marquees" type="folder" id="marquees" source="auto" option=""/>
+	<setting label="flyers" type="folder" id="flyers" source="auto" option=""/>
+</category>
+
+
+</settings>
