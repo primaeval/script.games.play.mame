@@ -1,7 +1,7 @@
 <settings>
 
 <category label="Filter">
-	<setting label="Custom filter name" type="text" id="filter" default="Change Me In Settings!"/>
+	<setting label="Custom filter name" type="text" id="filter" default="Change Me in the Settings!"/>
 	<setting type="sep"/>
 	<setting label="Include in name" type="text" id="name"/>
 	<setting label="Exclude in name" type="text" id="exclude" default="mahjong|poker|fruit"/>

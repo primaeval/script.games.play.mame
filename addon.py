@@ -11,10 +11,10 @@ import xml.etree.ElementTree as etree
 plugin = Plugin()
 
 
-
 def log(v):
     xbmc.log(re.sub(',',',\n',repr(v)))
 
+    
 @plugin.route('/listxml')
 def listxml():
     dialog = xbmcgui.Dialog()
@@ -35,9 +35,8 @@ def listxml():
             dialog.notification('MAME: Extracting game information.', 'This takes a long time.%s' % ('.' * (count % 3) ))
             count = count + 1
             time.sleep(1)
-    #    p.communicate()
-    dialog.notification('MAME: Extracting game information.','processing games...')
-    log("finished writing xml")
+
+    dialog.notification('MAME: Generating game list.','processing games...')
     with open(xml_file,"rb") as in_file:
         list = []
         then = time.time()
@@ -48,17 +47,13 @@ def listxml():
                     a = game.attrib
                     info = {}                   
                     info['name'] = a['name']
-                    #new_letter = info['name'][0:3]
+
                     now = time.time()
                     diff = now - then
                     if diff > 1:
                         then = now
                         dialog.notification('MAME: Extracting game information.', '%s'  % (info['name']))
-                    #if new_letter != letter:
-                    #    dialog.notification('MAME: extracting game information', '%s%s'  % (info['name'], '.' * count))
-                    #    letter = new_letter
-                    #    count = count + 1
-                    log(info['name'])
+
                     info['cloneof'] = ''
                     if 'cloneof' in a:
                         info['cloneof'] = a['cloneof']
@@ -88,25 +83,29 @@ def listxml():
                     if d is not None:
                         d = d.attrib    
                         if 'status' in d:
-                            info['status'] = d['status']                    
+                            info['status'] = d['status']
                     info['players'] = ''
                     i = game.find('input')
                     if i is not None:
                         i = i.attrib
                         if 'players' in i:
-                            info['players'] = i['players']                                
+                            info['players'] = i['players']
                     if info['isbios'] == '' and info['isdevice'] == '' and info['ismechanical'] == '' and info['status'] != 'preliminary' :
                         list.append(info)
+                        
                     elem.clear()
                     
         with open(json_file, 'wb') as outfile:
             json.dump(list, outfile)
+            
         dialog.notification('MAME:','Finished extracting game information!')
+        
+        
         
 @plugin.route('/missing')
 def missing():
     dialog = xbmcgui.Dialog()
-    dialog.notification('MAME: Checking for missing roms.', 'This takes a while!')
+    dialog.notification('MAME: Checking for missing roms.', 'Starting...')
     addon = xbmcaddon.Addon()
     profile = xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8')
     
@@ -116,16 +115,8 @@ def missing():
         if file.endswith(".zip"):
             print(file)
             found_roms.append(file[:-4])
-    log(found_roms)
     
-    addon = xbmcaddon.Addon()
-    profile = xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8')
     json_file = os.path.join(profile, "mame.json")
-    #xbmc.log(json_file)
-    #xbmc.log(start)
-    #xbmc.log(end)
-    #exe = plugin.get_setting('exe')
-    #(path,mame) = os.path.split(exe)
     with open(json_file, 'r') as infile:
         list = json.load(infile)
         
@@ -137,35 +128,10 @@ def missing():
     found_json_file = os.path.join(profile, "found.json")
     with open(found_json_file, 'wb') as outfile:
         json.dump(found_list, outfile)
+        
     dialog.notification('MAME: Checking for missing roms.', 'Finished!')
-                
-@plugin.route('/default')
-def default():
-    snaps = plugin.get_setting('snaps')
-    titles = plugin.get_setting('titles')
-    cabinets = plugin.get_setting('cabinets')
-    marquees = plugin.get_setting('marquees')
-    flyers = plugin.get_setting('flyers')
-    items = [
-        {'label': r[0], 
-        'thumbnail': '%s%s.png' % (snaps,r[1]), 
-        'icon': '%s%s.png' % (marquees,r[1]), 
-        'path': plugin.url_for('play', rom=r[1]),
-        'properties' : {
-        'fanart_image' : '%s%s.png' % (flyers,r[1]), 
-        'banner' : '%s%s.png' % (marquees,r[1]), 
-        'clearlogo': '%s%s.png' % (titles,r[1]), 
-        'poster': '%s%s.png' % (cabinets,r[1]), 
-        }
-        } for r in games
-    ]
-    plugin.set_content('movies')
-    sorted_items = sorted(items, key=lambda item: item['label'])
-    return sorted_items
 
-#@plugin.route('/filter', name='filter_options', options={'clone': 'false', 'year_start' : '0', 'year_end' : '9999', 'name' : '', 'players' : '', 'manufacturer': '', 'rom' : ''})
-#def filter(clone, year_start, year_end, name, players, manufacturer, rom):
-#@plugin.route('/filter', name='filter_options', options={'clone': 'false'})
+
 @plugin.route('/filter/<clone>/<start>/<end>/<name>/<exclude>/<rom>/<manufacturer>/<players>/<found>/<timeless>')
 def filter(clone,start,end,name,exclude,rom,manufacturer,players,found,timeless):
 
@@ -176,69 +142,56 @@ def filter(clone,start,end,name,exclude,rom,manufacturer,players,found,timeless)
     else:
         json_name = "mame.json"
     json_file = os.path.join(profile, json_name)
-    xbmc.log(json_file)
-    #xbmc.log(start)
-    #xbmc.log(end)
     exe = plugin.get_setting('exe')
     (path,mame) = os.path.split(exe)
     with open(json_file, 'r') as infile:
         list = json.load(infile)
-    
-    #log(len(list))
 
-    #sorted_games = sorted(games, key=lambda game: game[1])    
-    
     keepers = []
     for l in list:
         keep = True
         if l['cloneof']:
-            label = "[COLOR orange]%s[/COLOR] - [COLOR green]%s[/COLOR] - %s [B]%s[/B] [I]%s[/I]" % (l['description'], l['year'], l['name'], l['cloneof'], l['manufacturer'] )
+            label = "[COLOR orange]%s[/COLOR] - [COLOR green]%s[/COLOR] - %s [B]%s[/B] [I]%s[/I]" % 
+            (l['description'], l['year'], l['name'], l['cloneof'], l['manufacturer'] )
         else:
-            label = "[COLOR yellow][B]%s[/B][/COLOR] - [COLOR green]%s[/COLOR] - %s [B]%s[/B] [I]%s[/I]" % (l['description'], l['year'], l['name'], l['cloneof'], l['manufacturer'] )
+            label = "[COLOR yellow][B]%s[/B][/COLOR] - [COLOR green]%s[/COLOR] - %s [B]%s[/B] [I]%s[/I]" % 
+            (l['description'], l['year'], l['name'], l['cloneof'], l['manufacturer'] )
         if l['cloneof'] != "" and clone == 'false':
             keep = False
-        
-        #year = int(re.sub('\?','0',l['year']))
+
         year = l['year']
         if '?' in year:
             if timeless != 'true':
                 keep = False
         else:
             year = int(year)
-            #log(year)
             if year < int(start) or year > int(end):
                 keep = False
         
         if name != '?':
-            #log(name)
             if not re.search(name, l['description'],re.I):
                 keep = False
                 
         if exclude != '?':
-            #log(exclude)
             if re.search(exclude, l['description'],re.I):
                 keep = False
                 
         if rom != '?':
-            #log(name)
             if not re.search(rom, l['name'],re.I):
                 keep = False
                 
         if manufacturer != '?':
-            #log(manufacturer)
             if not re.search(manufacturer, l['manufacturer'],re.I):
                 keep = False
                 
         if players != '?':
-            #log(manufacturer)
             if not re.search(players, l['players'],re.I):
                 keep = False
 
         if keep:
             l['label'] = label
             keepers.append(l)
-            #games.append((label, l['name']))
-    #log(len(keepers))
+            
     out_keepers = []
     for l in keepers:
         l['sortname'] = l['name']
@@ -246,16 +199,12 @@ def filter(clone,start,end,name,exclude,rom,manufacturer,players,found,timeless)
             l['cloneof'] = l['name']
             l['sortname'] = ''
         out_keepers.append(l)
-    #log(out_keepers)
-    #log(len(out_keepers))
+
     sorted_list = sorted(out_keepers, key = lambda x: (x['cloneof'], x['sortname']))
-    #log(sorted_list)
     
     games = []
     for l in sorted_list:
         games.append((l['label'], l['name']))
-    
-    #sorted_games = sorted(games, key=lambda game: game[1])                
 
     snaps = plugin.get_setting('snaps')
     titles = plugin.get_setting('titles')
@@ -275,14 +224,10 @@ def filter(clone,start,end,name,exclude,rom,manufacturer,players,found,timeless)
         }
         } for r in games
     ]
-    #log(items)
-    #plugin.set_content('movies')
-    #sorted_items = sorted(items, key=lambda item: item['label'])
     return items
 
 @plugin.route('/')
 def index():
-
     filter = plugin.get_setting('filter')
     name = plugin.get_setting('name')
     exclude = plugin.get_setting('exclude')
@@ -295,6 +240,8 @@ def index():
     found = plugin.get_setting('found')
     timeless = plugin.get_setting('timeless')
 
+    clones = clones
+    found = found
     if filter == '':
         filter = 'Filter'
     if name == '':
@@ -307,8 +254,6 @@ def index():
         start = '1'
     if end == '':
         end = '9999'
-    clones = clones
-    found = found
     timeless = timeless
     if manufacturer == '':
         manufacturer = '?'
@@ -323,52 +268,7 @@ def index():
         'path': plugin.url_for('filter' , clone=clones, start=start, end=end, name=name, exclude=exclude, rom=rom, manufacturer=manufacturer, players=players, found=found, timeless=timeless),
 
     } ,  
-    {
-        'label': "All",
-        'path': plugin.url_for('filter' , clone='true', start=0, end=9999, name='?', exclude='?', rom='?', manufacturer='?', players='?', found='false', timeless='true'),
-
-    } ,    
-    
-    {
-        'label': "No Clones",
-        'path': plugin.url_for('filter', clone='false', start=1, end=1979, name='?', exclude='?', rom='?', manufacturer='?', players='?', found='false', timeless='true'),
-
-    } ,
-    {
-        'label': "Clones",
-        'path': plugin.url_for('filter', clone='true', start=1, end=1979, name='?', exclude='?', rom='?', manufacturer='?', players='?', found='false', timeless='true'),
-
-    },
-    {
-        'label': "Invaders",
-        'path': plugin.url_for('filter', clone='false', start=1, end=1979, name='invaders', exclude='?', rom='?', manufacturer='?', players='?', found='false', timeless='true'),
-
-    }, 
-    {
-        'label': "inv rom",
-        'path': plugin.url_for('filter', clone='true', start=1, end=1979, name='?', exclude='?', rom='inv', manufacturer='?', players='?', found='false', timeless='true'),
-
-    },     {
-        'label': "Golden",
-        'path': plugin.url_for('filter', clone='false', start=1977, end=1982, name='?', exclude='?', rom='?', manufacturer='?', players='?', found='false', timeless='true'),
-
-    },
-        {
-        'label': "1980",
-        'path': plugin.url_for('filter', clone='true', start=1980, end=1980, name='?', exclude='?', rom='?', manufacturer='?', players='?', found='false', timeless='true'),
-
-    },
-    {
-        'label': "Pre 1980",
-        'path': plugin.url_for('filter', clone='true', start=1, end=1979, name='?', exclude='?', rom='?', manufacturer='?', players='?', found='false', timeless='true'),
-
-    },
-    {
-        'label': "Unknown Year",
-        'path': plugin.url_for('filter', clone='false', start=0, end=0, name='?', exclude='?', rom='?',manufacturer='?', players='?', found='false', timeless='true'),
-
-    },    ]
-
+    ]
     sorted_items = sorted(items, key=lambda item: item['label'])
     return sorted_items
 
@@ -376,19 +276,9 @@ def index():
 def play(rom):
     exe = plugin.get_setting('exe')
     roms = plugin.get_setting('roms')
-    # Normally we would use label to parse a specific web page, in this case we are just
-    # using it for a new list item label to show how URL parsing works.
-    items = [
-        {'label': rom},
-    ]
-    #subprocess.call(["c:\emulators\mame\mame.exe", "amidar"])
-    #subprocess.Popen(['mame', 'amidar'], cwd='c:\\emulators\\mame')
-    #return items
-    #from subprocess import Popen, PIPE, STDOUT
-    #handle = Popen(['mame.exe', 'amidar' ], shell=True, stdout=PIPE, stderr=STDOUT, stdin=PIPE, cwd=r'C:\emulators\mame')
     (path,mame) = os.path.split(exe)
-    handle = Popen([mame, rom, '-rompath', roms], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,cwd=path)
-    xbmc.log(handle.stdout.readline().strip())
+    handle = Popen([mame, rom, '-rompath', roms], shell=True, cwd=path)
+
     
 if __name__ == '__main__':
     plugin.run()
