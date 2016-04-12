@@ -25,7 +25,7 @@ def listxml():
     xml_file = os.path.join(profile, 'mame.xml')
     err_file = os.path.join(profile, "stderr.txt")
     json_file = os.path.join(profile, "mame.json")
-
+    
     exe = plugin.get_setting('exe')
     (path,mame) = os.path.split(exe)
     with open(xml_file,"wb") as out, open(err_file,"wb") as err:
@@ -102,6 +102,42 @@ def listxml():
         with open(json_file, 'wb') as outfile:
             json.dump(list, outfile)
         dialog.notification('MAME:','Finished extracting game information!')
+        
+@plugin.route('/missing')
+def missing():
+    dialog = xbmcgui.Dialog()
+    dialog.notification('MAME: Checking for missing roms.', 'This takes a while!')
+    addon = xbmcaddon.Addon()
+    profile = xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8')
+    
+    roms = plugin.get_setting('roms')
+    found_roms = []
+    for file in os.listdir(roms):
+        if file.endswith(".zip"):
+            print(file)
+            found_roms.append(file[:-4])
+    log(found_roms)
+    
+    addon = xbmcaddon.Addon()
+    profile = xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8')
+    json_file = os.path.join(profile, "mame.json")
+    #xbmc.log(json_file)
+    #xbmc.log(start)
+    #xbmc.log(end)
+    #exe = plugin.get_setting('exe')
+    #(path,mame) = os.path.split(exe)
+    with open(json_file, 'r') as infile:
+        list = json.load(infile)
+        
+    found_list = []
+    for l in list:
+        if l["name"] in found_roms:
+            found_list.append(l)
+            
+    found_json_file = os.path.join(profile, "found.json")
+    with open(found_json_file, 'wb') as outfile:
+        json.dump(found_list, outfile)
+    dialog.notification('MAME: Checking for missing roms.', 'Finished!')
                 
 @plugin.route('/default')
 def default():
@@ -135,7 +171,11 @@ def filter(clone,start,end,name,exclude,rom,manufacturer,players):
 
     addon = xbmcaddon.Addon()
     profile = xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8')
-    json_file = os.path.join(profile, "mame.json")
+    if plugin.get_setting('found') == 'true':
+        json_name = "found.json"
+    else:
+        json_name = "mame.json"
+    json_file = os.path.join(profile, json_name)
     xbmc.log(json_file)
     #xbmc.log(start)
     #xbmc.log(end)
