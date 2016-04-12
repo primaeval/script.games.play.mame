@@ -1,9 +1,10 @@
 from xbmcswift2 import Plugin
-import xbmc,xbmcaddon,xbmcvfs
+import xbmc,xbmcaddon,xbmcvfs,xbmcgui
 import os, sys, subprocess
 from subprocess import Popen
 import json
 import re
+import time
 import xml.etree.ElementTree as etree
 
 
@@ -16,6 +17,8 @@ def log(v):
 
 @plugin.route('/listxml')
 def listxml():
+    dialog = xbmcgui.Dialog()
+    dialog.notification('MAME: Generating game list.', 'This takes a long long time!')
     addon = xbmcaddon.Addon()
     profile = xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8')
 
@@ -27,10 +30,17 @@ def listxml():
     (path,mame) = os.path.split(exe)
     with open(xml_file,"wb") as out, open(err_file,"wb") as err:
         p = subprocess.Popen([mame, '-listxml'],shell=True, stdout=out,stderr=err,cwd=path)
-        p.communicate()
+        count = 0
+        while p.poll() is None:
+            dialog.notification('MAME: Extracting game information.', 'This takes a long time.%s' % ('.' * (count % 3) ))
+            count = count + 1
+            time.sleep(1)
+    #    p.communicate()
+    dialog.notification('MAME: Extracting game information.','processing games...')
     log("finished writing xml")
     with open(xml_file,"rb") as in_file:
         list = []
+        then = time.time()
         for event, elem in etree.iterparse(in_file):
             if event == 'end':
                 if elem.tag == 'game':
@@ -38,6 +48,16 @@ def listxml():
                     a = game.attrib
                     info = {}                   
                     info['name'] = a['name']
+                    #new_letter = info['name'][0:3]
+                    now = time.time()
+                    diff = now - then
+                    if diff > 1:
+                        then = now
+                        dialog.notification('MAME: Extracting game information.', '%s'  % (info['name']))
+                    #if new_letter != letter:
+                    #    dialog.notification('MAME: extracting game information', '%s%s'  % (info['name'], '.' * count))
+                    #    letter = new_letter
+                    #    count = count + 1
                     log(info['name'])
                     info['cloneof'] = ''
                     if 'cloneof' in a:
@@ -81,7 +101,7 @@ def listxml():
                     
         with open(json_file, 'wb') as outfile:
             json.dump(list, outfile)
-        
+        dialog.notification('MAME:','Finished extracting game information!')
                 
 @plugin.route('/default')
 def default():
