@@ -1,28 +1,37 @@
 <settings>
 
 <category label="Filter">
-	<setting label="Custom filter name" type="text" id="filter"/>
+	<setting label="Custom filter name" type="text" id="filter" default="Change Me In Settings!"/>
+	<setting type="sep"/>
 	<setting label="Include in name" type="text" id="name"/>
-	<setting label="Exclude in name" type="text" id="exclude"/>
-	<setting label="ROM" type="text" id="rom" />
+	<setting label="Exclude in name" type="text" id="exclude" default="mahjong|poker|fruit"/>
+	<setting type="sep"/>
+	<setting label="rom" type="text" id="rom" />
 	<setting label="Available roms only" type="bool" id="found" default="false"/>
-	<setting label="Start year" type="number" id="start" />
-	<setting label="End year" type="number" id="end" />
-	<setting label="Clones" type="bool" id="clones" default="false"/>
+	<setting type="sep"/>
+	<setting label="Start year" type="number" id="start" default="1970"/>
+	<setting label="End year" type="number" id="end" default="2020"/>
+	<setting label="Include unknown years" type="bool" id="timeless" default="true"/>
+	<setting type="sep"/>
+	<setting label="Include clones" type="bool" id="clones" default="true"/>
+	<setting type="sep"/>
 	<setting label="Manufacturer" type="text" id="manufacturer"/>
+	<setting type="sep"/>
 	<setting label="Players" type="number" id="players" />
 </category>
 
 <category label="Paths">
 	<setting label="MAME program (mame.exe)" type="file" id="exe"/>
 	<setting label="Generate mame game list..." type="action" action="XBMC.RunPlugin(plugin://script.games.play.mame/listxml)"/>
+	<setting type="sep"/>
 	<setting label="roms" type="folder" id="roms" source="auto" option=""/>
 	<setting label="Check for missing roms..." type="action" action="XBMC.RunPlugin(plugin://script.games.play.mame/missing)"/>
+	<setting type="sep"/>
 	<setting label="snaps (thumbnails)" type="folder" id="snaps" source="auto" option=""/>
-	<setting label="titles (clearlogo)" type="folder" id="titles" source="auto" option=""/>
+	<setting label="flyers (fanart)" type="folder" id="flyers" source="auto" option=""/>
 	<setting label="cabinets (poster)" type="folder" id="cabinets" source="auto" option=""/>
 	<setting label="marquees (banners)" type="folder" id="marquees" source="auto" option=""/>
-	<setting label="flyers (fanart)" type="folder" id="flyers" source="auto" option=""/>
+	<setting label="titles (clearlogo)" type="folder" id="titles" source="auto" option=""/>
 </category>
 
 

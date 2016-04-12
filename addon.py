@@ -166,12 +166,12 @@ def default():
 #@plugin.route('/filter', name='filter_options', options={'clone': 'false', 'year_start' : '0', 'year_end' : '9999', 'name' : '', 'players' : '', 'manufacturer': '', 'rom' : ''})
 #def filter(clone, year_start, year_end, name, players, manufacturer, rom):
 #@plugin.route('/filter', name='filter_options', options={'clone': 'false'})
-@plugin.route('/filter/<clone>/<start>/<end>/<name>/<exclude>/<rom>/<manufacturer>/<players>')
-def filter(clone,start,end,name,exclude,rom,manufacturer,players):
+@plugin.route('/filter/<clone>/<start>/<end>/<name>/<exclude>/<rom>/<manufacturer>/<players>/<found>/<timeless>')
+def filter(clone,start,end,name,exclude,rom,manufacturer,players,found,timeless):
 
     addon = xbmcaddon.Addon()
     profile = xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8')
-    if plugin.get_setting('found') == 'true':
+    if found == 'true':
         json_name = "found.json"
     else:
         json_name = "mame.json"
@@ -201,12 +201,13 @@ def filter(clone,start,end,name,exclude,rom,manufacturer,players):
         #year = int(re.sub('\?','0',l['year']))
         year = l['year']
         if '?' in year:
-            year = 0
+            if timeless != 'true':
+                keep = False
         else:
             year = int(year)
-        #log(year)
-        if year < int(start) or year > int(end):
-            keep = False
+            #log(year)
+            if year < int(start) or year > int(end):
+                keep = False
         
         if name != '?':
             #log(name)
@@ -291,6 +292,8 @@ def index():
     clones = plugin.get_setting('clones')
     manufacturer = plugin.get_setting('manufacturer')
     players = plugin.get_setting('players')
+    found = plugin.get_setting('found')
+    timeless = plugin.get_setting('timeless')
 
     if filter == '':
         filter = 'Filter'
@@ -305,6 +308,8 @@ def index():
     if end == '':
         end = '9999'
     clones = clones
+    found = found
+    timeless = timeless
     if manufacturer == '':
         manufacturer = '?'
     if players == '':
@@ -315,52 +320,52 @@ def index():
     items = [
     {
         'label': filter,
-        'path': plugin.url_for('filter' , clone=clones, start=start, end=end, name=name, exclude=exclude, rom=rom, manufacturer=manufacturer, players=players),
+        'path': plugin.url_for('filter' , clone=clones, start=start, end=end, name=name, exclude=exclude, rom=rom, manufacturer=manufacturer, players=players, found=found, timeless=timeless),
 
     } ,  
     {
         'label': "All",
-        'path': plugin.url_for('filter' , clone='true', start=0, end=9999, name='?', exclude='?', rom='?', manufacturer='?', players='?'),
+        'path': plugin.url_for('filter' , clone='true', start=0, end=9999, name='?', exclude='?', rom='?', manufacturer='?', players='?', found='false', timeless='true'),
 
     } ,    
     
     {
         'label': "No Clones",
-        'path': plugin.url_for('filter', clone='false', start=1, end=1979, name='?', exclude='?', rom='?', manufacturer='?', players='?'),
+        'path': plugin.url_for('filter', clone='false', start=1, end=1979, name='?', exclude='?', rom='?', manufacturer='?', players='?', found='false', timeless='true'),
 
     } ,
     {
         'label': "Clones",
-        'path': plugin.url_for('filter', clone='true', start=1, end=1979, name='?', exclude='?', rom='?', manufacturer='?', players='?'),
+        'path': plugin.url_for('filter', clone='true', start=1, end=1979, name='?', exclude='?', rom='?', manufacturer='?', players='?', found='false', timeless='true'),
 
     },
     {
         'label': "Invaders",
-        'path': plugin.url_for('filter', clone='false', start=1, end=1979, name='invaders', exclude='?', rom='?', manufacturer='?', players='?'),
+        'path': plugin.url_for('filter', clone='false', start=1, end=1979, name='invaders', exclude='?', rom='?', manufacturer='?', players='?', found='false', timeless='true'),
 
     }, 
     {
         'label': "inv rom",
-        'path': plugin.url_for('filter', clone='true', start=1, end=1979, name='?', exclude='?', rom='inv', manufacturer='?', players='?'),
+        'path': plugin.url_for('filter', clone='true', start=1, end=1979, name='?', exclude='?', rom='inv', manufacturer='?', players='?', found='false', timeless='true'),
 
     },     {
         'label': "Golden",
-        'path': plugin.url_for('filter', clone='false', start=1977, end=1982, name='?', exclude='?', rom='?', manufacturer='?', players='?'),
+        'path': plugin.url_for('filter', clone='false', start=1977, end=1982, name='?', exclude='?', rom='?', manufacturer='?', players='?', found='false', timeless='true'),
 
     },
         {
         'label': "1980",
-        'path': plugin.url_for('filter', clone='true', start=1980, end=1980, name='?', exclude='?', rom='?', manufacturer='?', players='?'),
+        'path': plugin.url_for('filter', clone='true', start=1980, end=1980, name='?', exclude='?', rom='?', manufacturer='?', players='?', found='false', timeless='true'),
 
     },
     {
         'label': "Pre 1980",
-        'path': plugin.url_for('filter', clone='true', start=1, end=1979, name='?', exclude='?', rom='?', manufacturer='?', players='?'),
+        'path': plugin.url_for('filter', clone='true', start=1, end=1979, name='?', exclude='?', rom='?', manufacturer='?', players='?', found='false', timeless='true'),
 
     },
     {
         'label': "Unknown Year",
-        'path': plugin.url_for('filter', clone='false', start=0, end=0, name='?', exclude='?', rom='?',manufacturer='?', players='?'),
+        'path': plugin.url_for('filter', clone='false', start=0, end=0, name='?', exclude='?', rom='?',manufacturer='?', players='?', found='false', timeless='true'),
 
     },    ]
 
