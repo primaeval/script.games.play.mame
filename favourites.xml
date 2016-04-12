@@ -1,0 +1,8 @@
+<favourites>
+    <favourite name="All MAME Games">ActivateWindow(10001,&quot;plugin://script.games.play.mame/filter/true/1970/2020/%3F/%3F/%3F/%3F/%3F/false/true&quot;,return)</favourite>
+    <favourite name="All MAME Games (no clones)">ActivateWindow(10001,&quot;plugin://script.games.play.mame/filter/false/1970/2020/%3F/%3F/%3F/%3F/%3F/false/true&quot;,return)</favourite>
+    <favourite name="MAME Golden Age">ActivateWindow(10001,&quot;plugin://script.games.play.mame/filter/true/1977/1982/%3F/%3F/%3F/%3F/%3F/false/false&quot;,return)</favourite>
+    <favourite name="MAME no year">ActivateWindow(10001,&quot;plugin://script.games.play.mame/filter/true/0/0/%3F/%3F/%3F/%3F/%3F/false/true&quot;,return)</favourite>
+    <favourite name="MAME invaders">ActivateWindow(10001,&quot;plugin://script.games.play.mame/filter/true/1/9999/invaders/%3F/%3F/%3F/%3F/false/true&quot;,return)</favourite>
+    <favourite name="MAME pacman/puckman">ActivateWindow(10001,&quot;plugin://script.games.play.mame/filter/true/1/9999/pac-man%7Cpuckman/%3F/%3F/%3F/%3F/false/true&quot;,return)</favourite>
+</favourites>

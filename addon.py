@@ -18,6 +18,12 @@ def log(v):
 @plugin.route('/listxml')
 def listxml():
     dialog = xbmcgui.Dialog()
+    
+    exe = plugin.get_setting('exe')
+    if exe == "":
+        dialog.notification("MAME: mame.exe not found!", "Set mame.exe, press OK and try again.")
+        return
+
     dialog.notification('MAME: Generating game list.', 'This takes a long long time!')
     addon = xbmcaddon.Addon()
     profile = xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8')
@@ -26,7 +32,7 @@ def listxml():
     err_file = os.path.join(profile, "stderr.txt")
     json_file = os.path.join(profile, "mame.json")
     
-    exe = plugin.get_setting('exe')
+
     (path,mame) = os.path.split(exe)
     with open(xml_file,"wb") as out, open(err_file,"wb") as err:
         p = subprocess.Popen([mame, '-listxml'],shell=True, stdout=out,stderr=err,cwd=path)
@@ -105,11 +111,17 @@ def listxml():
 @plugin.route('/missing')
 def missing():
     dialog = xbmcgui.Dialog()
+
+    roms = plugin.get_setting('roms')
+    if roms == "":
+        dialog.notification("MAME: roms path not entered!", "Set roms, press OK and try again.")
+        return
+    
     dialog.notification('MAME: Checking for missing roms.', 'Starting...')
     addon = xbmcaddon.Addon()
     profile = xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8')
     
-    roms = plugin.get_setting('roms')
+
     found_roms = []
     for file in os.listdir(roms):
         if file.endswith(".zip"):
@@ -134,7 +146,8 @@ def missing():
 
 @plugin.route('/filter/<clone>/<start>/<end>/<name>/<exclude>/<rom>/<manufacturer>/<players>/<found>/<timeless>')
 def filter(clone,start,end,name,exclude,rom,manufacturer,players,found,timeless):
-
+    dialog = xbmcgui.Dialog()
+    
     addon = xbmcaddon.Addon()
     profile = xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8')
     if found == 'true':
@@ -142,24 +155,41 @@ def filter(clone,start,end,name,exclude,rom,manufacturer,players,found,timeless)
     else:
         json_name = "mame.json"
     json_file = os.path.join(profile, json_name)
+
     exe = plugin.get_setting('exe')
+    if exe == "":
+        dialog.notification("MAME: mame.exe not found!", "Set mame.exe in the Settings.")
+        return
+    
+    mame_json_file = os.path.join(profile, "mame.json")
+    if not os.path.exists(mame_json_file):
+        listxml()
+        
+    found_json_file = os.path.join(profile, "found.json")
+    if not os.path.exists(found_json_file):
+        missing()
+    
     (path,mame) = os.path.split(exe)
-    with open(json_file, 'r') as infile:
-        list = json.load(infile)
+    try:
+        with open(json_file, 'r') as infile:
+            list = json.load(infile)
+    except:
+        dialog = xbmcgui.Dialog()
+        dialog.notification("Play MAME: Missing File!" ,'Load game list in Settings.')
+        return
 
     keepers = []
     for l in list:
         keep = True
-        if l['cloneof']:
-            label = "[COLOR orange]%s[/COLOR] - [COLOR green]%s[/COLOR] - %s [B]%s[/B] [I]%s[/I]" % 
-            (l['description'], l['year'], l['name'], l['cloneof'], l['manufacturer'] )
-        else:
-            label = "[COLOR yellow][B]%s[/B][/COLOR] - [COLOR green]%s[/COLOR] - %s [B]%s[/B] [I]%s[/I]" % 
-            (l['description'], l['year'], l['name'], l['cloneof'], l['manufacturer'] )
+
         if l['cloneof'] != "" and clone == 'false':
             keep = False
 
         year = l['year']
+        log(year)
+        if year == '':
+            year = '?'
+            l['year'] = year
         if '?' in year:
             if timeless != 'true':
                 keep = False
@@ -188,9 +218,18 @@ def filter(clone,start,end,name,exclude,rom,manufacturer,players,found,timeless)
             if not re.search(players, l['players'],re.I):
                 keep = False
 
+        if l['cloneof']:
+            label = "[COLOR orange]%s[/COLOR] - [COLOR green]%s[/COLOR] - %s [B]%s[/B] [I]%s[/I]" % (
+            l['description'], l['year'], l['name'], l['cloneof'], l['manufacturer'] )
+        else:
+            label = "[COLOR yellow][B]%s[/B][/COLOR] - [COLOR green]%s[/COLOR] - %s [B]%s[/B] [I]%s[/I]" % (
+            l['description'], l['year'], l['name'], l['cloneof'], l['manufacturer'] )
+                
         if keep:
             l['label'] = label
             keepers.append(l)
+            
+        
             
     out_keepers = []
     for l in keepers:

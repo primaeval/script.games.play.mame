@@ -22,10 +22,8 @@
 
 <category label="Paths">
 	<setting label="MAME program (mame.exe)" type="file" id="exe"/>
-	<setting label="Generate mame game list..." type="action" action="XBMC.RunPlugin(plugin://script.games.play.mame/listxml)"/>
 	<setting type="sep"/>
 	<setting label="roms" type="folder" id="roms" source="auto" option=""/>
-	<setting label="Check for missing roms..." type="action" action="XBMC.RunPlugin(plugin://script.games.play.mame/missing)"/>
 	<setting type="sep"/>
 	<setting label="snaps (thumbnails)" type="folder" id="snaps" source="auto" option=""/>
 	<setting label="flyers (fanart)" type="folder" id="flyers" source="auto" option=""/>
@@ -34,5 +32,11 @@
 	<setting label="titles (clearlogo)" type="folder" id="titles" source="auto" option=""/>
 </category>
 
+<category label="Maintenance">
+	<setting label="Set mame.exe and roms, press OK, then come back here and..." type="lsep"/>
+	<setting label="Generate mame game list..." type="action" action="XBMC.RunPlugin(plugin://script.games.play.mame/listxml)"/>
+	<setting type="sep"/>
+	<setting label="Check for missing roms..." type="action" action="XBMC.RunPlugin(plugin://script.games.play.mame/missing)"/>
+</category>
 
 </settings>
